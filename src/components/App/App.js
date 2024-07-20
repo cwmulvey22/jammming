@@ -1,29 +1,41 @@
 import React, { useState } from 'react';
 import SearchBar from '../SearchBar/SearchBar';
-import TrackList from '../TrackList/TrackList';
+import SearchResults from '../SearchResults/SearchResults';
+import Playlist from '../Playlist/Playlist';
+import Spotify from '../../util/Spotify';
 import './App.css';
 
 const App = () => {
-  const [searchResults, setSearchResults] = useState([
-    { id: 1, name: 'Song 1', artist: 'Artist 1', album: 'Album 1' },
-    { id: 2, name: 'Song 2', artist: 'Artist 2', album: 'Album 2' },
-  ]);
-
-  const [playlist, setPlaylist] = useState([
-    { id: 3, name: 'Song 3', artist: 'Artist 3', album: 'Album 3' },
-  ]);
+  const [searchResults, setSearchResults] = useState([]);
+  const [playlistTracks, setPlaylistTracks] = useState([]);
+  const [playlistName, setPlaylistName] = useState('New Playlist');
 
   const handleSearch = (searchTerm) => {
-    console.log(`Searching for ${searchTerm}`);
-    // Add logic to search and update search results
+    Spotify.search(searchTerm).then(results => {
+      setSearchResults(results);
+    });
   };
 
   const addTrack = (track) => {
-    setPlaylist([...playlist, track]);
+    if (!playlistTracks.find(savedTrack => savedTrack.id === track.id)) {
+      setPlaylistTracks([...playlistTracks, track]);
+    }
   };
 
   const removeTrack = (track) => {
-    setPlaylist(playlist.filter(currentTrack => currentTrack.id !== track.id));
+    setPlaylistTracks(playlistTracks.filter(currentTrack => currentTrack.id !== track.id));
+  };
+
+  const handleNameChange = (name) => {
+    setPlaylistName(name);
+  };
+
+  const savePlaylist = () => {
+    const trackUris = playlistTracks.map(track => track.uri);
+    Spotify.savePlaylist(playlistName, trackUris).then(() => {
+      setPlaylistName('New Playlist');
+      setPlaylistTracks([]);
+    });
   };
 
   return (
@@ -31,8 +43,14 @@ const App = () => {
       <h1>Jammming</h1>
       <SearchBar onSearch={handleSearch} />
       <div className="App-playlist">
-        <TrackList tracks={searchResults} onAdd={addTrack} isRemoval={false} />
-        <TrackList tracks={playlist} onRemove={removeTrack} isRemoval={true} />
+        <SearchResults searchResults={searchResults} onAdd={addTrack} />
+        <Playlist
+          playlistName={playlistName}
+          tracks={playlistTracks}
+          onRemove={removeTrack}
+          onNameChange={handleNameChange}
+          onSave={savePlaylist}
+        />
       </div>
     </div>
   );
